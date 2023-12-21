@@ -1,6 +1,6 @@
 // Z80 CPU binary compatible soft core
-// Copyright (C) 2004,2005 by Yasuo Kuwahara
-// version 1.04
+// Copyright (C) 2004-2007 by Yasuo Kuwahara
+// version 1.10
 
 // This software is provided "AS IS", with NO WARRANTY.
 // NON-COMMERCIAL USE ONLY
@@ -550,7 +550,6 @@ mreq, iorq, rd, wr, data_out, busack_out, intack_out, mr,
 		sel1[1] | sel_rld,
 		sel1[0] | sel_rrd
 	};
-	//initial $monitor($stime,, sel1_b, sel1_c, sel1_d, sel1_e, sel1_h, sel1_l, sel1_a, sel1_data, sel1_sph, sel1_spl, sel1_pch, sel1_pcl);
 	//
 	wire [7:0] alu_z, alu_c;
 	assign alu_zero = ~| alu_z;
@@ -654,14 +653,12 @@ mreq, iorq, rd, wr, data_out, busack_out, intack_out, mr,
 		sela_hl | sela_sp,
 		selal_adr | sela_de | sela_sp
 	};
-	//initial $monitor($stime,, selal,, selah);
 	// final selector
 	wire sel_fr = g_mw2 & i_push & im[6];
 	wire [1:0] self = {
 		sel_rld | sel_rrd,
 		sel_fr | sel_rrd
 	};
-	//initial $monitor($stime,, self);
 	// sequencer
 	seq seq(.data_in(data), .busreq(busreq), .waitreq(waitreq1), .intreq(intreq), .nmireq(nmireq), .reset_in(reset_in), .clk(clk), 
 		.intack(intack), .nmiack(nmiack), .busack(busack_out), .iff2(iff2), .start(start), 
@@ -780,10 +777,10 @@ mreq, iorq, rd, wr, data_out, busack_out, intack_out, mr,
 	wire loadal = loada_hl | loada_l;
 	wire clr_pch1 = reset_in | clr_pch;
 	wire reg_load_f = sgate & ~((g_if | g_mw1) & (al_n | al_hl | incdec_hl | i_rs_hl)) & ~g_out & ~g_disp;
-	reg_a reg_a(.a(alu_z), 
+	reg_dual reg_a(.a(alu_z), 
 		.load(load_a), 
 		.set(reset_in), .regsel(sel_af), .clk(clk), .q(q_a));
-	reg_f reg_f(.a(d_f), 
+	reg_dual reg_f(.a(d_f), 
 		.load(reg_load_f),
 		.set(reset_in), .regsel(sel_af), .clk(clk), .q(q_f));
 	reg_dual2 reg_b(.a(alu_z), .a2(asu_z[15:8]), 
@@ -1152,7 +1149,6 @@ module asu(a, b, ci, i, z, co);
 				 | &tor[14:9] & tand[8]
 				 | &tor[14:8] & co;
 	assign z[15:8] = a[15:8] ^ { 8 { b1[7] } } ^ { c[14:8], co };
-	//initial $monitor($stime,, a,, b,, ci,, i,, c,, z,, co);
 endmodule
 
 // ALU for general 8-bit arithmetic/logical
@@ -1238,31 +1234,11 @@ module alu(c_in, im, a, b, inva, invb, reg_q_c, reg_q_h, s_and, s_or, s_xor, ec,
 				 | &tor[7:1] & tand[0]
 				 | &tor[7:0] & ci;
 	assign co = { i_daa ? daa1 ^ invb : c[7], c[6:0] };
-	//initial $monitor($stime,, c_in, a1,, b1,, inva, invb, reg_q_c, reg_q_h, s_and, s_or, s_xor, ec, i_daa, set, res, l, r, z, co);
 endmodule
 
-// A register: dual register
+// dual register
 
-module reg_a(a, load, set, regsel, clk, q);
-	input [7:0] a;
-	input load, set, regsel, clk;
-	output [7:0] q;
-	reg [7:0] q0, q1;
-	always @(posedge clk) begin
-		if (set) begin
-			q0 <= 8'b11111111;
-			q1 <= 8'b11111111;
-		end
-		else if (load) 
-			if (regsel) q1 <= a;
-			else q0 <= a;
-	end
-	assign q = regsel ? q1 : q0;
-endmodule
-
-// F register: dual register
-
-module reg_f(a, load, set, regsel, clk, q);
+module reg_dual(a, load, set, regsel, clk, q);
 	input [7:0] a;
 	input load, set, regsel, clk;
 	output [7:0] q;
@@ -1310,16 +1286,10 @@ module reg_dual2(a, a2, load, load2, regsel, clk, q);
 	input [7:0] a, a2;
 	input load, load2, regsel, clk;
 	output [7:0] q;
-	reg [7:0] q0 = 8'b00000000, q1 = 8'b00000000;
-	always @(posedge clk) begin
-		if (load) 
-			if (regsel) q1 <= a;
-			else q0 <= a;
-		else if (load2) 
-			if (regsel) q1 <= a2;
-			else q0 <= a2;
-	end
-	assign q = regsel ? q1 : q0;
+	reg [7:0] r[0:1];
+	always @(posedge clk) 
+		if (load | load2) r[regsel] <= load ? a : a2;
+	assign q = r[regsel];
 endmodule
 
 // 2 input register
@@ -1355,37 +1325,11 @@ module reg_quad3(a, a2, a3, load, load2, load3, regsel, i_dd, i_fd, clk, q);
 	input [7:0] a, a2, a3;
 	input load, load2, load3, regsel, i_dd, i_fd, clk;
 	output [7:0] q;
-	reg [7:0] q0 = 8'b00000000, q1 = 8'b00000000, qx = 8'b00000000, qy = 8'b00000000;
-	function [7:0] select;
-		input [1:0] sel;
-		input [31:0] a;
-		begin
-			case (sel) 
-				2'h0: select = a[31:24];
-				2'h1: select = a[23:16];
-				2'h2: select = a[15:8];
-				2'h3: select = a[7:0];
-			endcase
-		end
-	endfunction
-	always @(posedge clk) begin
-		if (load) 
-			if (i_dd) qx <= a;
-			else if (i_fd) qy <= a;
-			else if (regsel) q1 <= a;
-			else q0 <= a;
-		else if (load2) 
-			if (i_dd) qx <= a2;
-			else if (i_fd) qy <= a2;
-			else if (regsel) q1 <= a2;
-			else q0 <= a2;
-		else if (load3) 
-			if (i_dd) qx <= a3;
-			else if (i_fd) qy <= a3;
-			else if (regsel) q1 <= a3;
-			else q0 <= a3;
-	end
-	assign q = select({ i_dd | i_fd, ~i_dd & regsel | i_fd }, { q0, q1, qx, qy });
+	reg [7:0] r[0:3];
+	wire [1:0] adr = { i_dd | i_fd, ~i_dd & regsel | i_fd };
+	always @(posedge clk) 
+		if (load | load2 | load3) r[adr] <= load ? a : load2 ? a2 : a3;
+	assign q = r[adr];
 endmodule
 
 // PCH register: 2 input register w/ increment, decrement, clear
