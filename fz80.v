@@ -2,8 +2,7 @@
 // Copyright (C) 2004-2007 by Yasuo Kuwahara
 // version 1.10
 
-// This software is provided "AS IS", with NO WARRANTY.
-// NON-COMMERCIAL USE ONLY
+// MIT License
 
 //`define DEBUG
 //`define ICE
