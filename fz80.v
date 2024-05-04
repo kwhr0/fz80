@@ -1,6 +1,6 @@
 // Z80 CPU binary compatible soft core
-// Copyright (C) 2004-2007 by Yasuo Kuwahara
-// version 1.10
+// Copyright (C) 2004-2024 by Yasuo Kuwahara
+// version 1.11
 
 // MIT License
 
