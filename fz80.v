@@ -341,7 +341,7 @@ mreq, iorq, rd, wr, data_out, busack_out, intack_out, mr,
 	// I/O
 	wire i_inan = i0 & ih[3] & im[3] & il[3];
 	wire i_inrc = ied & ih[1] & il[0];
-	wire i_outna = ih[3] & im[2] & il[3];
+	wire i_outna = i0 & ih[3] & im[2] & il[3];
 	wire i_outcr = ied & ih[1] & il[1];
 	wire i_ioblock = ied & ih[2] & i[5] & ~i[2] & i[1];
 	wire i_inblock = i_ioblock & ~i[0];
@@ -737,7 +737,8 @@ mreq, iorq, rd, wr, data_out, busack_out, intack_out, mr,
 		| (alu_c[3] ^ subf) & hv0
 		| hv1
 		| q_f[0] & hv2
-		| (q_f[1] ? ~alu_b[3] & (~alu_b[2] | ~alu_b[1]) : alu_b[3] & (alu_b[2] | alu_b[1])) & i_daa
+//		| (q_f[1] ? ~alu_b[3] & (~alu_b[2] | ~alu_b[1]) : alu_b[3] & (alu_b[2] | alu_b[1])) & i_daa
+		| (q_a[4] ^ alu_z[4]) & i_daa
 		| q_f[4] & ~(load_f | hv0 | hv1 | hv2 | hv3 | i_daa);
 	assign d_f[5] = data_in[5] & load_f
 		| alu_z[5] & xy0
