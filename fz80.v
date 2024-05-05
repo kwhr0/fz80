@@ -1,6 +1,6 @@
 // Z80 CPU binary compatible soft core
 // Copyright (C) 2004-2024 by Yasuo Kuwahara
-// version 1.11
+// version 1.12
 
 // MIT License
 
@@ -762,8 +762,8 @@ mreq, iorq, rd, wr, data_out, busack_out, intack_out, mr,
 		| i[5] & i[4] & i[3] & sel & zs1
 		| q_b[7] & i_ioblock
 		| q_f[7] & ~(load_f | zs0 | zs1 | i_ioblock);
-//	assign q_f_out = q_f;
-	assign q_f_out = { q_f[7:6], 1'b0, q_f[4], 1'b0, q_f[2:0] };
+	assign q_f_out = q_f;
+//	assign q_f_out = { q_f[7:6], 1'b0, q_f[4], 1'b0, q_f[2:0] };
 	wire [7:0] cond3_sel = { q_f[7], ~q_f[7], q_f[2], ~q_f[2], q_f[0], ~q_f[0], q_f[6], ~q_f[6] };
 	assign cond = cond3_sel[i[5:3]];
 	wire [3:0] cond2_sel = { q_f[0], ~q_f[0], q_f[6], ~q_f[6] };
